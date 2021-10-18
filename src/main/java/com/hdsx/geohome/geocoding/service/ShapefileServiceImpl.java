@@ -3,7 +3,7 @@ package com.hdsx.geohome.geocoding.service;
 
 import com.hdsx.geohome.geocoding.api.IndexDao;
 import com.hdsx.geohome.geocoding.api.ShapefileService;
-import com.hdsx.geohome.geocoding.vo.Element;
+
 import com.hdsx.toolkit.jts.JTSTools;
 import com.hdsx.toolkit.number.NumberUtile;
 import com.hdsx.toolkit.uuid.UUIDGenerator;
@@ -59,9 +59,9 @@ public class ShapefileServiceImpl implements ShapefileService {
 
 
     @Override
-    public List<Element> read(String filepath) {
+    public List<Map<String,Object>> read(String filepath) {
         DataStore store = getDataStore(filepath);
-        List<Element> elementList = new ArrayList<>();
+        List<Map<String,Object>> elementList = new ArrayList<>();
         try{
             String[] typeNames = store.getTypeNames();
             IndexDao indexDao = new IndexDaoImpl();
@@ -85,13 +85,13 @@ public class ShapefileServiceImpl implements ShapefileService {
         return elementList;
     }
 
-    public void convert(DataStore store, String typeName, List<Element> elements) throws Exception {
+    public void convert(DataStore store, String typeName, List<Map<String,Object>> elements) throws Exception {
         SimpleFeatureSource featureSource = store.getFeatureSource(typeName);
         SimpleFeatureCollection featureCollection = featureSource.getFeatures();
         SimpleFeatureIterator iterator = featureCollection.features();
 
         while (iterator.hasNext()) {
-            Element element = new Element();
+        	Map<String,Object> element = new HashMap<String,Object>();
             SimpleFeature feature = iterator.next();
             Object code = feature.getAttribute("CODE");
             Object name = feature.getAttribute("NAME");
@@ -101,27 +101,27 @@ public class ShapefileServiceImpl implements ShapefileService {
             Object district = feature.getAttribute("ADMINCODE");
             Geometry geometry = JTSTools.getInstance().toGeometry(feature.getDefaultGeometryProperty().getValue().toString());
             if (code != null) {
-                element.setCode(code.toString());
+                element.put("code",code.toString());
             }
             if (name != null) {
-                element.setName(name.toString());
+                element.put("name",name.toString());
             }
             if (order != null) {
-                element.setOrder(NumberUtile.string2float(order.toString()));
+            	 element.put("order",NumberUtile.string2float(order.toString()));
             }
             if (table != null) {
-                element.setTable(table.toString());
+            	 element.put("table",table.toString());
             }
             if (address != null) {
-                element.setAddress(address.toString());
+            	 element.put("address",address.toString());
             }
             if (district != null) {
-                element.setDistrict(district.toString());
+            	 element.put("district",district.toString());
             }
             if (geometry != null) {
-                element.setGeometry(geometry);
+            	 element.put("geometry",geometry);
             }
-            element.setId(UUIDGenerator.randomUUID());
+            element.put("id",UUIDGenerator.randomUUID());
             elements.add(element);
         }
     }

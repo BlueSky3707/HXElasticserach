@@ -3,8 +3,7 @@ package com.hdsx.geohome.geocoding.service;
 
 import com.hdsx.geohome.geocoding.api.IndexDao;
 import com.hdsx.geohome.geocoding.vo.DIRECTORYTYPE;
-import com.hdsx.geohome.geocoding.vo.Element;
-import com.hdsx.toolkit.number.NumberUtile;
+
 import com.hdsx.toolkit.uuid.UUIDGenerator;
 import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.geom.Point;
@@ -14,13 +13,17 @@ import org.geotools.data.DataStore;
 import org.geotools.data.simple.SimpleFeatureCollection;
 import org.geotools.data.simple.SimpleFeatureIterator;
 import org.geotools.data.simple.SimpleFeatureSource;
+import org.opengis.feature.Property;
 import org.opengis.feature.simple.SimpleFeature;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Created by jzh on 2016/10/22.
@@ -49,88 +52,56 @@ public class IndexCallable implements Runnable {
 
     public void run() {
         SimpleFeatureIterator iterator = this.featureCollection.features();
-        List elements = new ArrayList(this.featureCollection.size());
+        List<Map<String,Object>> elements = new ArrayList<Map<String,Object>>(this.featureCollection.size());
 
         WKTReader wktReader = new WKTReader();
         while (iterator.hasNext()) {
-            Element element = new Element();
+        	Map<String,Object>  element = new HashMap<String,Object> ();
             SimpleFeature feature = iterator.next();
+          
+            Collection<Property> properties = feature.getProperties();
+            for (Property property : properties) {
+          
+	            if(property.getName()!=null) {
+	            	element.put(property.getName().toString(), property.getValue());
+	            }
+			}
             Object code = feature.getAttribute("AREA_CODE");
             Object name = feature.getAttribute("CORP_NAME");
             Object address = feature.getAttribute("ADRESS");
-            
-            Object fr= feature.getAttribute("FR");
-            Object tel = feature.getAttribute("TEL");
-            Object cusccode = feature.getAttribute("CUSC_CODE");  
-            Object iszdy = feature.getAttribute("IS_ZDY");
-            Object isxkz= feature.getAttribute("IS_XKZ");
-            Object isonline = feature.getAttribute("IS_ONLINE");
-            Object corptype = feature.getAttribute("CORP_TYPE");
-            
-            Object order = feature.getAttribute("order");
             Object table = feature.getAttribute("table");
-            Object district = feature.getAttribute("ADMINCODE0");
+           
+           
+            if (code != null) {
+                element.put("code",code.toString());
+            }
+            if (name != null) {
+            	element.put("name",name.toString());
+            }
+           
+            if (table != null) {
+            	element.put("table",table.toString());
+            }
+            if (address != null) {
+            	element.put("address",address.toString());
+            }
+           
+            Object oid = feature.getAttribute("OBJECTID");
+            if(oid!=null) {
+            	element.put("id",oid.toString());
+            }else{
+            	element.put("id",UUIDGenerator.randomUUID());
+            }
             try {
                 if ((feature.getDefaultGeometry() instanceof Point)) {
                     Geometry geometry = wktReader.read(feature.getDefaultGeometryProperty().getValue().toString());
                     if (geometry != null)
-                        element.setGeometry(geometry);
+                        element.put("geometry", geometry);
                 }
             }
             catch (ParseException e) {
                 e.printStackTrace();
-            }
-            if (code != null) {
-                element.setCode(code.toString());
-            }
-            if (name != null) {
-                element.setName(name.toString());
-            }
-            if (order != null) {
-                element.setOrder(NumberUtile.string2float(order.toString()));
-            }
-            if (table != null) {
-                element.setTable(table.toString());
-            }
-            if (address != null) {
-                element.setAddress(address.toString());
-            }
-            if (district != null) {
-                element.setDistrict(district.toString());
-            }
-            
-            
-           
-          
-            if (fr != null) {
-            	element.setFr(fr.toString());
-            }
-            if (tel != null) {
-            	element.setTel(tel.toString());
-            }
-            if (cusccode != null) {
-            	element.setCusccode(cusccode.toString());
-            }
-            if (iszdy != null) {
-            	element.setIszdy(Double.valueOf(iszdy.toString()));
-            }
-            if (isxkz != null) {
-            	element.setIsxkz(Double.valueOf(isxkz.toString()));
-            }
-            
-            if (isonline != null) {
-            	element.setIsonline(Double.valueOf(isonline.toString()));
-            }
-            if (corptype != null) {
-            	element.setCorptype(Double.valueOf(corptype.toString()) );
-            }
-            
-            Object oid = feature.getAttribute("OBJECTID");
-            if(oid!=null) {
-                element.setId(oid.toString());
-            }else{
-                element.setId(UUIDGenerator.randomUUID());
-            }
+            }           
             elements.add(element);
         }
         try {

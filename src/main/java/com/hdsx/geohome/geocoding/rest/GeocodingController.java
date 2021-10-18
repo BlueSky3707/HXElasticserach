@@ -22,6 +22,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 
 /**
@@ -56,9 +57,8 @@ public class GeocodingController {
     public QueryResult cicle(   @RequestParam(value = "keywords",required = false) String keywords,
                                 @RequestParam(value = "tables",required = false)   String tables,
                                 @RequestParam(value = "field",required = false)    String field,
-                                @RequestParam(value = "distance",required = false,defaultValue = "0.5") double distance,
                                 @RequestParam(value = "center",required = false)   String center,
-                                @RequestParam(value="exclude",required = false) String exclude,
+                                @RequestParam(value = "distance",required = false,defaultValue = "0.5") double distance,      
                                 @RequestParam(value = "current",required = false,defaultValue = "1")  int current,
                                 @RequestParam(value = "limit",required = false,defaultValue = "10")    int limit) {
         try{
@@ -134,19 +134,20 @@ public class GeocodingController {
 
     @ApiOperation("单条插入")
     @RequestMapping(value = "/save", method = {RequestMethod.POST}, produces = "application/json")
-    public ApiResult save(@RequestBody Element ele){
-        if(StringUtile.isEmpty(ele.getLat()) || StringUtile.isEmpty(ele.getLon())){
+    public ApiResult save(@RequestBody Map<String,Object> map){
+        if(StringUtile.isEmpty(map.get("lat")) || StringUtile.isEmpty(map.get("lon"))){
             return new ApiResult(ApiResult.ERR_CODE,"经纬度参数不能为空",false);
         }
-        if(StringUtile.isEmpty(ele.getTable())){
+        if(StringUtile.isEmpty(map.get("table"))){
             return new ApiResult(ApiResult.ERR_CODE,"图层参数不能为空",false);
         }
         ApiResult apiResult = null;
-        List<Element> elements = new ArrayList<>();
+        List<Map<String,Object>> elements = new ArrayList<>();
         try{
-            ele.setGeometry(new WKTReader().read("POINT ("+ele.getLon()+" "+ele.getLat()+")"));
-            ele.setGeometryType("Point");
-            elements.add(ele);
+        	map.put("geometry", new WKTReader().read("POINT ("+map.get("lon")+" "+map.get("lat")+")"));
+			map.put("geometryType", "Point");
+
+            elements.add(map);
             indexDao.save(elements,"POI",DIRECTORYTYPE.FILE);
             apiResult = new ApiResult(ApiResult.SUC_CODE,"",true);
         }catch (Exception e){
@@ -158,22 +159,23 @@ public class GeocodingController {
 
     @ApiOperation("批量插入")
     @RequestMapping(value = "/batchInsert", method = {RequestMethod.POST}, produces = "application/json")
-    public ApiResult batchInsert(@RequestBody List<Element> eles){
+    public ApiResult batchInsert(@RequestBody List<Map<String,Object>> eles){
         if(eles == null){
             return new ApiResult(ApiResult.ERR_CODE,"数据为空",false);
         }
         ApiResult apiResult = null;
         try{
             for(int i = 0 ;i < eles.size();i++){
-                Element ele= eles.get(i);
-                if(StringUtile.isEmpty(ele.getLat()) || StringUtile.isEmpty(ele.getLon())){
+            	Map<String,Object> ele= eles.get(i);
+                if(StringUtile.isEmpty(ele.get("lat")) || StringUtile.isEmpty(ele.get("lon"))){
                     return new ApiResult(ApiResult.ERR_CODE,"经纬度参数不能为空",false);
                 }
-                if(StringUtile.isEmpty(ele.getTable())){
+                if(StringUtile.isEmpty(ele.get("table"))){
                     return new ApiResult(ApiResult.ERR_CODE,"图层参数不能为空",false);
                 }
-                ele.setGeometry(new WKTReader().read("POINT ("+ele.getLon()+" "+ele.getLat()+")"));
-                ele.setGeometryType("Point");
+                ele.put("geometry", new WKTReader().read("POINT ("+ele.get("lon")+" "+ele.get("lat")+")"));
+//              
+                ele.put("geometryType", "Point");
             }
             indexDao.save(eles,"POI",DIRECTORYTYPE.FILE);
             apiResult = new ApiResult(ApiResult.SUC_CODE,"",true);
@@ -222,7 +224,7 @@ public class GeocodingController {
         ApiResult apiResult = new ApiResult();
         apiResult.setSuccessed(true);
         apiResult.setErrMsg("");
-        apiResult.setObject(fulltext(input,null,null,page,rows));
+        apiResult.setObject(fulltext(input,"sx_fsfqwsclc",null,page,rows));
         return apiResult;
     }
 

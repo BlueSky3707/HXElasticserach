@@ -6,7 +6,7 @@ import com.hdsx.geohome.geocoding.api.IndexDao;
 import com.hdsx.geohome.geocoding.api.ShapefileService;
 import com.hdsx.geohome.geocoding.parameter.ModelParameter;
 import com.hdsx.geohome.geocoding.vo.DIRECTORYTYPE;
-import com.hdsx.geohome.geocoding.vo.Element;
+
 import com.hdsx.geohome.geocoding.vo.QueryResult;
 import com.vividsolutions.jts.geom.Point;
 import com.vividsolutions.jts.io.WKTReader;
@@ -22,6 +22,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 import java.rmi.RemoteException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest(classes = {GeocodingApplication.class})
@@ -51,7 +52,7 @@ public class RestServiceApplicationTests {
 	@Test
 	public void shpService() {
 		try {
-			List<Element> elements =	shapefileService.read("D:\\HDSXMapData\\POI20150812");
+			List<Map<String,Object>> elements =	shapefileService.read("D:\\HDSXMapData\\POI20150812");
 			System.out.println("读取数据总资源:"+elements.size());
 			int count = 0;
 			while(count < 10){

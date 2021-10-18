@@ -7,7 +7,7 @@ import com.hdsx.geohome.geocoding.utile.DocumentUtils;
 import com.hdsx.geohome.geocoding.utile.LuceneUtils;
 import com.hdsx.geohome.geocoding.utile.SpatialUtils;
 import com.hdsx.geohome.geocoding.vo.DIRECTORYTYPE;
-import com.hdsx.geohome.geocoding.vo.Element;
+
 import com.hdsx.geohome.geocoding.vo.QueryResult;
 import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.geom.Point;
@@ -24,13 +24,12 @@ import org.locationtech.spatial4j.context.SpatialContext;
 import org.locationtech.spatial4j.distance.DistanceUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Service;
-
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 
@@ -42,15 +41,13 @@ public class IndexDaoImpl implements IndexDao {
 
     private static Logger logger = LoggerFactory.getLogger(IndexDaoImpl.class);
 
-    @Autowired
-    private ThreadPoolTaskExecutor taskExecutor;
 
     @Override
     public void createIndex(String indexName) throws IOException {
 
     }
 
-    public synchronized void save(List<Element> elementList, String table, DIRECTORYTYPE directorytype) {
+    public synchronized void save(List<Map<String,Object>> elementList, String table, DIRECTORYTYPE directorytype) {
         IndexWriter ramIndexWriter = null;
         Directory ramDirectory = null;
         try {
@@ -68,9 +65,9 @@ public class IndexDaoImpl implements IndexDao {
             ramIndexWriter = new IndexWriter(ramDirectory, ramConfig);
 
             int i = 0; for (int size = elementList.size(); i < size; i++) {
-                Element element = elementList.get(i);
-                if(StringUtils.isEmpty(element.getTable()))
-                    element.setTable(table);
+            	Map<String,Object> element = elementList.get(i);
+                
+                element.put("table", table);
                 Document document = DocumentUtils.element2Document(element);
                 ramIndexWriter.addDocument(document);
             }
@@ -154,12 +151,12 @@ public class IndexDaoImpl implements IndexDao {
         }
     }
 
-    public void update(Element element, DIRECTORYTYPE directorytype) {
+    public void update(Map<String,Object> element, DIRECTORYTYPE directorytype) {
 
         Document document = DocumentUtils.element2Document(element);
         IndexWriter indexWriter = null;
         try {
-            Term term = new Term("id", element.getId());
+            Term term = new Term("id", element.get("id").toString());
             IndexWriterConfig config = new IndexWriterConfig(LuceneUtils.getAnalyzer());
             indexWriter = new IndexWriter(LuceneUtils.getDirectory(directorytype), config);
             indexWriter.updateDocument(term, document);
@@ -172,7 +169,7 @@ public class IndexDaoImpl implements IndexDao {
 
     @Override
     public QueryResult search(ModelParameter parameter, DIRECTORYTYPE directorytype) {
-        List list = new ArrayList();
+        List<Map<String,Object>> list = new ArrayList<Map<String,Object>>();
         try {
             IndexReader reader = DirectoryReader.open(LuceneUtils.getDirectory(directorytype));
             IndexSearcher searcher = new IndexSearcher(reader);
@@ -190,7 +187,7 @@ public class IndexDaoImpl implements IndexDao {
             for (int i = begin; i < end; i++) {
                 ScoreDoc scoreDoc = hits[i];
                 Document document = searcher.doc(scoreDoc.doc);
-                Element element = DocumentUtils.document2Element(document);
+                Map<String,Object> element = DocumentUtils.document2Element(document);
                 list.add(element);
             }
             reader.close();
@@ -205,23 +202,23 @@ public class IndexDaoImpl implements IndexDao {
     public boolean save(String id,String code, String name, String address, String type, String admincode, double longtitude, double latitude, int forder) {
         IndexWriter indexWriter = null;
         try {
-            Element element = new Element();
-            if(StringUtils.isEmpty(id))
-                element.setId(UUID.randomUUID().toString());
-            else
-                element.setId(id);
-            element.setAddress(address);
-            element.setName(name);
-            element.setCode(code);
-            element.setDescribe("");
-            element.setDistrict(admincode);
-            element.setGeometry(new WKTReader().read("POINT ("+longtitude+" "+latitude+")"));
-            element.setGeometryType("Point");
-            element.setTable(type);
-            element.setOrder(forder);
-            List<Element> elements = new ArrayList<>();
+        	Map<String,Object> element = new HashMap<String,Object>();
+            if(StringUtils.isEmpty(id)) {
+            	element.put("id", UUID.randomUUID().toString());
+            }else {
+            	element.put("id", id);
+            }
+            element.put("address", address);
+            element.put("name", name);
+            element.put("code", code);
+            element.put("table", type);
+            element.put("geometry", new WKTReader().read("POINT ("+longtitude+" "+latitude+")"));
+            element.put("geometryType", "Point");
+            
+               
+            List<Map<String,Object>> elements = new ArrayList<>();
             elements.add(element);
-            delete(element.getId(),DIRECTORYTYPE.FILE);
+            delete(element.get("id").toString(),DIRECTORYTYPE.FILE);
             save(elements,"POI", DIRECTORYTYPE.FILE);
             return  true;
         } catch (Exception e) {
@@ -257,7 +254,8 @@ public class IndexDaoImpl implements IndexDao {
         if (!StringUtils.isEmpty(parameter.getField())) {
             keywordsBuilder = new BooleanQuery.Builder();  //匹配关键字
             WildcardQuery wildcardQuery = new WildcardQuery(new Term(parameter.getField(), "*" + parameter.getKeywords() + "*"));
-            builder.add(wildcardQuery, BooleanClause.Occur.SHOULD);
+            BoostQuery boostQuery0 = new BoostQuery(wildcardQuery, 3.0F);
+            keywordsBuilder.add(boostQuery0, BooleanClause.Occur.SHOULD);
         }else{
             if(!StringUtils.isEmpty(parameter.getKeywords())){
                 keywordsBuilder = new BooleanQuery.Builder();  //匹配关键字

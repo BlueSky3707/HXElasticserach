@@ -3,7 +3,7 @@ package com.hdsx.geohome.geocoding.rest;
 import com.hdsx.geohome.geocoding.api.IndexDao;
 import com.hdsx.geohome.geocoding.api.ShapefileService;
 import com.hdsx.geohome.geocoding.vo.DIRECTORYTYPE;
-import com.hdsx.geohome.geocoding.vo.Element;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.ApplicationListener;
@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 
 
 /**
@@ -42,7 +43,7 @@ public class PreloadStartup implements ApplicationListener<ContextRefreshedEvent
                     return;
                     //indexDao.deleteAll(DIRECTORYTYPE.FILE);
                 }
-                List<Element> elementList = shapefileService.read(filepath);
+                List<Map<String,Object>> elementList = shapefileService.read(filepath);
                 try {
                     indexDao.save(elementList,"POI", DIRECTORYTYPE.FILE);
                 } catch (IOException e) {

@@ -10,11 +10,17 @@ package com.hdsx.geohome.geocoding.utile;
 
 
 
-import com.hdsx.geohome.geocoding.vo.Element;
+
 import com.hdsx.toolkit.jts.JTSTools;
-import com.hdsx.toolkit.number.NumberUtile;
 import com.vividsolutions.jts.geom.Point;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 import org.apache.lucene.document.*;
+import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.spatial.SpatialStrategy;
 import org.locationtech.spatial4j.context.SpatialContext;
 import org.locationtech.spatial4j.context.SpatialContextFactory;
@@ -34,43 +40,25 @@ public class DocumentUtils {
 
     private DocumentUtils(){}
 
-    public static Document element2Document(Element element){
+    public static Document element2Document(Map<String,Object> element){
         Document doc=new Document();//索引文档
-        doc.add(new StringField("id",element.getId()==null?"":element.getId(),StringField.Store.YES));
-
-        ITextField fName = new ITextField("name",element.getName()==null?"":element.getName(),StringField.Store.YES);
-        fName.setBoost(element.getOrder());
+        Set<String> keySet = element.keySet();
+        for (String key : keySet) {
+        	 doc.add(new StringField(key,element.get(key)==null?"":element.get(key).toString(),StringField.Store.YES));
+		}
+        doc.add(new StringField("id",element.get("id")==null?"":element.get("id").toString(),StringField.Store.YES));
+        ITextField fName = new ITextField("name",element.get("name")==null?"":element.get("name").toString(),StringField.Store.YES);
         doc.add(fName);
-
-        ITextField fCode = new ITextField("code",element.getCode()==null?"":element.getCode(),StringField.Store.YES);
-        fCode.setBoost(element.getOrder());
+        ITextField fCode = new ITextField("code",element.get("code")==null?"":element.get("code").toString(),StringField.Store.YES);  
         doc.add(fCode);
-        ITextField fAddress = new ITextField("address",element.getAddress()==null?"":element.getAddress(),StringField.Store.YES);
-        fAddress.setBoost(element.getOrder());
-        doc.add(fAddress);
-        ITextField fr = new ITextField("fr",element.getFr()==null?"":element.getFr(),StringField.Store.YES);
-        fr.setBoost(element.getOrder());
-        doc.add(fr);
-        ITextField tel = new ITextField("tel",element.getTel()==null?"":element.getTel(),StringField.Store.YES);
-        tel.setBoost(element.getOrder());
-        doc.add(tel);
-        ITextField cusccode = new ITextField("cusccode",element.getCusccode()==null?"":element.getCusccode(),StringField.Store.YES);
-        cusccode.setBoost(element.getOrder());
-        doc.add(cusccode);
-        doc.add(new StringField("table",element.getTable()==null?"":element.getTable(),StringField.Store.YES));
-        doc.add(new StringField("district",element.getDistrict()==null?"":element.getDistrict(),StringField.Store.YES));
-
-        doc.add(new NumericDocValuesField("order", NumberUtile.float2long(element.getOrder())));
-        doc.add(new StringField("describe",Float.toString(element.getOrder()),StringField.Store.YES));
-        doc.add(new StringField("iszdy",element.getIszdy().toString(),StringField.Store.YES));
-        doc.add(new StringField("isxkz",element.getIsxkz().toString(),StringField.Store.YES));
-        doc.add(new StringField("isonline",element.getIsonline().toString(),StringField.Store.YES));
-        doc.add(new StringField("corptype",element.getCorptype().toString(),StringField.Store.YES));
- 
-
+        ITextField fAddress = new ITextField("address",element.get("address")==null?"":element.get("address").toString(),StringField.Store.YES);
+        doc.add(fAddress);      
+        doc.add(new StringField("table",element.get("table")==null?"":element.get("table").toString(),StringField.Store.YES));
+//        doc.add(new StringField("district",element.get("district")==null?"":element.get("district").toString(),StringField.Store.YES));
+//        doc.add(new NumericDocValuesField("order", NumberUtile.float2long((float) element.get("order"))));
         
-        if(element.getGeometry() != null){
-            Point jtsPoint = (Point)element.getGeometry();
+        if(element.get("geometry") != null){
+            Point jtsPoint = (Point)element.get("geometry");
             try {
                 WKTReader wktReader = new WKTReader(SpatialContext.GEO,new SpatialContextFactory());
                 Shape shape =  wktReader.read(jtsPoint.toText());
@@ -86,30 +74,32 @@ public class DocumentUtils {
         return doc;
     }
 
-    public static Element document2Element(Document document){
-        Element element=new Element();
-        element.setId(document.get("id"));
-        element.setName(document.get("name"));
-        element.setCode(document.get("code"));
-        element.setOrder(NumberUtile.string2float(document.get("order")));
-        element.setTable(document.get("table"));
-        element.setAddress(document.get("address"));
-        element.setDistrict(document.get("district"));
-        element.setFr(document.get("fr"));
-        element.setTel(document.get("tel"));
-        element.setCusccode(document.get("cusccode"));
-        element.setIszdy(Double.valueOf( document.get("iszdy")));
-        element.setIsxkz(Double.valueOf(document.get("isxkz")));
-        element.setIsonline(Double.valueOf(document.get("isonline")));
-        element.setCorptype(Double.valueOf(document.get("corptype")));
-       
-        try{
-            if(document.get("shape") != null){
-                element.setGeometry(JTSTools.getInstance().toGeometry(document.get("shape")));
+    public static Map<String,Object> document2Element(Document document){
+    	Map<String,Object> element=new HashMap<String,Object>();
+    	List<IndexableField> fields = document.getFields();
+    	for (IndexableField field : fields) {
+    		 
+            if(field.name().toString().equals("shape")){
+            	try{
+            		if(document.get("shape")!=null) {
+            			
+            			element.put("geometry",JTSTools.getInstance().toGeometry(document.get("shape")));
+            		}
+    	        }catch (Exception e){
+    	            e.printStackTrace();
+    	        }
+            }else if(!(field.name().toString().equals("the_geom"))){
+            	
+            	element.put(field.name().toString(), document.get(field.name().toString()));
             }
-        }catch (Exception e){
-            e.printStackTrace();
-        }
+        
+		}
+    	element.put("id", document.get("id"));
+    	element.put("name", document.get("name"));
+    	element.put("code", document.get("code"));
+    	element.put("table", document.get("table"));
+    	element.put("address", document.get("address"));
+       
         return  element;
     }
 
