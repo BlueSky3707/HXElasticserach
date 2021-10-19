@@ -177,7 +177,7 @@ public class IndexDaoImpl implements IndexDao {
             attributeFilter(parameter,builder);
             spatialFilter(parameter,builder);
 
-            TopDocs topDocs = searcher.search(builder.build(), 1000);
+            TopDocs topDocs = searcher.search(builder.build(), 100000);
             int count = topDocs.totalHits;
             ScoreDoc[] hits = topDocs.scoreDocs;
             int current = parameter.getCurrent();

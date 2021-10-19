@@ -218,13 +218,13 @@ public class GeocodingController {
 
     @ApiOperation("自动提示")
     @RequestMapping(value = "/auto", method = {RequestMethod.GET}, produces = "application/json")
-    public ApiResult auto(@RequestParam(value = "input",required = true) String input,
-                          @RequestParam(value = "page",required = false,defaultValue = "1") int page,
-                          @RequestParam(value = "rows",required = false,defaultValue = "10") int rows){
+    public ApiResult auto(@RequestParam(value = "keywords",required = true) String keywords,
+                          @RequestParam(value = "current",required = false,defaultValue = "1") int current,
+                          @RequestParam(value = "limit",required = false,defaultValue = "10") int limit){
         ApiResult apiResult = new ApiResult();
         apiResult.setSuccessed(true);
         apiResult.setErrMsg("");
-        apiResult.setObject(fulltext(input,"sx_fsfqwsclc",null,page,rows));
+        apiResult.setObject(fulltext(keywords,null,null,current,limit));
         return apiResult;
     }
 
