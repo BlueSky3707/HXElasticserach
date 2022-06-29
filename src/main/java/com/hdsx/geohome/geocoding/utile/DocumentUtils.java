@@ -54,11 +54,10 @@ public class DocumentUtils {
         ITextField fAddress = new ITextField("address",element.get("address")==null?"":element.get("address").toString(),StringField.Store.YES);
         doc.add(fAddress);      
         doc.add(new StringField("table",element.get("table")==null?"":element.get("table").toString(),StringField.Store.YES));
-//        doc.add(new StringField("district",element.get("district")==null?"":element.get("district").toString(),StringField.Store.YES));
-//        doc.add(new NumericDocValuesField("order", NumberUtile.float2long((float) element.get("order"))));
-        
+
         if(element.get("geometry") != null){
             Point jtsPoint = (Point)element.get("geometry");
+         
             try {
                 WKTReader wktReader = new WKTReader(SpatialContext.GEO,new SpatialContextFactory());
                 Shape shape =  wktReader.read(jtsPoint.toText());
@@ -69,6 +68,7 @@ public class DocumentUtils {
                 doc.add(new StoredField(strategy.getFieldName(), JTSTools.getInstance().toWKT(jtsPoint)));
             } catch (Exception e) {
                 e.printStackTrace();
+                System.out.println(element.get("table"));
             }
         }
         return doc;

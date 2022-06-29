@@ -6,7 +6,9 @@ import com.hdsx.geohome.geocoding.vo.DIRECTORYTYPE;
 
 import com.hdsx.toolkit.uuid.UUIDGenerator;
 import com.vividsolutions.jts.geom.Geometry;
+import com.vividsolutions.jts.geom.MultiPolygon;
 import com.vividsolutions.jts.geom.Point;
+import com.vividsolutions.jts.geom.Polygon;
 import com.vividsolutions.jts.io.ParseException;
 import com.vividsolutions.jts.io.WKTReader;
 import org.geotools.data.DataStore;
@@ -58,34 +60,17 @@ public class IndexCallable implements Runnable {
         while (iterator.hasNext()) {
         	Map<String,Object>  element = new HashMap<String,Object> ();
             SimpleFeature feature = iterator.next();
-          
             Collection<Property> properties = feature.getProperties();
             for (Property property : properties) {
           
 	            if(property.getName()!=null) {
-	            	element.put(property.getName().toString(), property.getValue());
+	            	element.put(property.getName().toString().toLowerCase(), property.getValue());
 	            }
 			}
-            Object code = feature.getAttribute("AREA_CODE");
-            Object name = feature.getAttribute("CORP_NAME");
-            Object address = feature.getAttribute("ADRESS");
             Object table = feature.getAttribute("table");
-           
-           
-            if (code != null) {
-                element.put("code",code.toString());
-            }
-            if (name != null) {
-            	element.put("name",name.toString());
-            }
-           
             if (table != null) {
             	element.put("table",table.toString());
-            }
-            if (address != null) {
-            	element.put("address",address.toString());
-            }
-           
+            }       
             Object oid = feature.getAttribute("OBJECTID");
             if(oid!=null) {
             	element.put("id",oid.toString());
@@ -93,11 +78,18 @@ public class IndexCallable implements Runnable {
             	element.put("id",UUIDGenerator.randomUUID());
             }
             try {
+            	System.out.println();
                 if ((feature.getDefaultGeometry() instanceof Point)) {
                     Geometry geometry = wktReader.read(feature.getDefaultGeometryProperty().getValue().toString());
                     if (geometry != null)
                         element.put("geometry", geometry);
+                }else if((feature.getDefaultGeometry() instanceof Polygon)||(feature.getDefaultGeometry() instanceof MultiPolygon)) {
+                	 Geometry geometry = wktReader.read(feature.getDefaultGeometryProperty().getValue().toString());
+                     if (geometry != null)
+                         element.put("geometry", geometry);
                 }
+                
+                
             }
             catch (ParseException e) {
                 e.printStackTrace();
