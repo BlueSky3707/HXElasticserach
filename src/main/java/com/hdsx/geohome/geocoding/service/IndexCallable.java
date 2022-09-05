@@ -54,7 +54,7 @@ public class IndexCallable implements Runnable {
 
     public void run() {
         SimpleFeatureIterator iterator = this.featureCollection.features();
-        List<Map<String,Object>> elements = new ArrayList<Map<String,Object>>(this.featureCollection.size());
+        List<Map<String,Object>> elements = new ArrayList<Map<String,Object>>();
 
         WKTReader wktReader = new WKTReader();
         while (iterator.hasNext()) {
@@ -78,7 +78,7 @@ public class IndexCallable implements Runnable {
             	element.put("id",UUIDGenerator.randomUUID());
             }
             try {
-            	System.out.println();
+            
                 if ((feature.getDefaultGeometry() instanceof Point)) {
                     Geometry geometry = wktReader.read(feature.getDefaultGeometryProperty().getValue().toString());
                     if (geometry != null)
@@ -95,6 +95,18 @@ public class IndexCallable implements Runnable {
                 e.printStackTrace();
             }           
             elements.add(element);
+//            System.out.println(elements.size());
+//            大文件读入
+            if(elements.size()==500000) {
+            	try {
+					this.indexDao.save(elements, this.typeName, DIRECTORYTYPE.FILE);
+					elements = new ArrayList<Map<String,Object>>();
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+            }
+            
         }
         try {
             this.indexDao.save(elements, this.typeName, DIRECTORYTYPE.FILE);

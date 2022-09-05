@@ -15,6 +15,7 @@ public class ModelParameter implements Serializable {
     private String keywords;
 
     private String field;
+    private String unit;
 
     private String[] tables;
 
@@ -83,7 +84,15 @@ public class ModelParameter implements Serializable {
 
 
 
-    @Override
+    public String getUnit() {
+		return unit;
+	}
+
+	public void setUnit(String unit) {
+		this.unit = unit;
+	}
+
+	@Override
     public String toString() {
         return "ModelParameter{" +
                 "keywords='" + keywords + '\'' +
