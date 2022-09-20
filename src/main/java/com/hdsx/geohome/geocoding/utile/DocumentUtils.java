@@ -24,8 +24,11 @@ import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.spatial.SpatialStrategy;
 import org.locationtech.spatial4j.context.SpatialContext;
 import org.locationtech.spatial4j.context.SpatialContextFactory;
+import org.locationtech.spatial4j.context.jts.JtsSpatialContext;
 import org.locationtech.spatial4j.io.WKTReader;
 import org.locationtech.spatial4j.shape.Shape;
+import org.locationtech.spatial4j.shape.jts.JtsGeometry;
+import org.locationtech.spatial4j.shape.jts.JtsShapeFactory;
 
 
 /**
@@ -34,7 +37,9 @@ import org.locationtech.spatial4j.shape.Shape;
  */
 public class DocumentUtils {
 
-    //默认分词 TextField
+    private static final String Geometry = null;
+
+	//默认分词 TextField
     //默认不分词 StringField
     //数字排序专用 NumericDocValuesField
 
@@ -44,7 +49,11 @@ public class DocumentUtils {
         Document doc=new Document();//索引文档
         Set<String> keySet = element.keySet();
         for (String key : keySet) {
+        	if(key.equals("geometry")) {
+        		doc.add(new TextField(key, element.get(key)==null?"":element.get(key).toString(),StringField.Store.YES));
+        	}else {
         	 doc.add(new StringField(key,element.get(key)==null?"":element.get(key).toString(),StringField.Store.YES));
+        	}
 		}
         doc.add(new StringField("id",element.get("id")==null?"":element.get("id").toString(),StringField.Store.YES));
         ITextField fName = new ITextField("name",element.get("name")==null?"":element.get("name").toString(),StringField.Store.YES);
@@ -55,22 +64,36 @@ public class DocumentUtils {
         doc.add(fAddress);      
         doc.add(new StringField("table",element.get("table")==null?"":element.get("table").toString(),StringField.Store.YES));
 
-        if(element.get("geometry") != null){
-            Point jtsPoint = (Point)element.get("geometry");
-         
-            try {
-                WKTReader wktReader = new WKTReader(SpatialContext.GEO,new SpatialContextFactory());
-                Shape shape =  wktReader.read(jtsPoint.toText());
-                SpatialStrategy strategy = SpatialUtils.createStrategy();
-                for (Field f : strategy.createIndexableFields(shape)) {
-                    doc.add(f);
-                }
-                doc.add(new StoredField(strategy.getFieldName(), JTSTools.getInstance().toWKT(jtsPoint)));
-            } catch (Exception e) {
-                e.printStackTrace();
-                System.out.println(element.get("table"));
-            }
-        }
+//        if(element.get("geometry") != null){
+//        	com.vividsolutions.jts.geom.Geometry object = (com.vividsolutions.jts.geom.Geometry)element.get("geometry");
+//            try {
+//            	if(object instanceof Point) {
+//            		 Point jtsPoint = (Point)element.get("geometry");
+//            		 WKTReader wktReader = new WKTReader(SpatialContext.GEO,new SpatialContextFactory());
+//                     Shape shape =  wktReader.read(jtsPoint.toText());
+//                     SpatialStrategy strategy = SpatialUtils.createStrategy();
+//                     for (Field f : strategy.createIndexableFields(shape)) {
+//                         doc.add(f);
+//                     }
+//                     doc.add(new StoredField(strategy.getFieldName(), JTSTools.getInstance().toWKT(jtsPoint)));
+//            	}else {
+//            		   SpatialStrategy strategy = SpatialUtils.createStrategy();
+//            	    	 JtsSpatialContext jtsSpatialContext = JtsSpatialContext.GEO;
+//            	         JtsShapeFactory jtsShapeFactory = jtsSpatialContext.getShapeFactory();
+//            	    	JtsGeometry jtsPoint = jtsShapeFactory.makeShape(object);
+//            	    	
+//            	    	for (Field f : strategy.createIndexableFields(jtsPoint)) {
+//                            doc.add(f);
+//                        }
+//                        doc.add(new TextField(strategy.getFieldName(), JTSTools.getInstance().toWKT(object),StringField.Store.YES));
+//            	    	
+//            	}
+//               
+//            } catch (Exception e) {
+//                e.printStackTrace();
+//                System.out.println(element.get("table"));
+//            }
+//        }
         return doc;
     }
 
@@ -79,16 +102,16 @@ public class DocumentUtils {
     	List<IndexableField> fields = document.getFields();
     	for (IndexableField field : fields) {
     		 
-            if(field.name().toString().equals("shape")){
+            if(field.name().toString().equals("geometry")){
             	try{
-            		if(document.get("shape")!=null) {
+            		if(document.get("geometry")!=null) {
             			
-            			element.put("geometry",JTSTools.getInstance().toGeometry(document.get("shape")));
+            			element.put("geometry",JTSTools.getInstance().toGeometry(document.get("geometry")));
             		}
     	        }catch (Exception e){
     	            e.printStackTrace();
     	        }
-            }else if(!(field.name().toString().equals("the_geom"))){
+            }else {
             	
             	element.put(field.name().toString(), document.get(field.name().toString()));
             }
