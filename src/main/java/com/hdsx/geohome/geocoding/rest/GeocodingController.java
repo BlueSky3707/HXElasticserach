@@ -1,6 +1,4 @@
 package com.hdsx.geohome.geocoding.rest;
-
-
 import com.hdsx.geohome.geocoding.api.IndexDao;
 import com.hdsx.geohome.geocoding.parameter.ModelParameter;
 import com.hdsx.geohome.geocoding.service.LayerCache;

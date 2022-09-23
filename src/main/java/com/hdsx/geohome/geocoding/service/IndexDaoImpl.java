@@ -22,6 +22,7 @@ import org.apache.lucene.spatial.query.SpatialOperation;
 import org.apache.lucene.store.Directory;
 import org.locationtech.spatial4j.context.SpatialContext;
 import org.locationtech.spatial4j.distance.DistanceUtils;
+import org.locationtech.spatial4j.shape.jts.JtsGeometry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -239,6 +240,7 @@ public class IndexDaoImpl implements IndexDao {
         if ((geometry instanceof Point)) {
             Point jtsPoint = (Point)geometry;
             SpatialStrategy strategy = SpatialUtils.createStrategy();
+
             SpatialArgs args = new SpatialArgs(SpatialOperation.Intersects, SpatialContext.GEO.getShapeFactory().circle(jtsPoint.getX(), jtsPoint.getY(), DistanceUtils.dist2Degrees(parameter.getDistance(), 6371.0087714000001D)));
             geoQuery = strategy.makeQuery(args);
         }
