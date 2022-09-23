@@ -85,44 +85,5 @@ public class ShapefileServiceImpl implements ShapefileService {
         return elementList;
     }
 
-    public void convert(DataStore store, String typeName, List<Map<String,Object>> elements) throws Exception {
-        SimpleFeatureSource featureSource = store.getFeatureSource(typeName);
-        SimpleFeatureCollection featureCollection = featureSource.getFeatures();
-        SimpleFeatureIterator iterator = featureCollection.features();
 
-        while (iterator.hasNext()) {
-        	Map<String,Object> element = new HashMap<String,Object>();
-            SimpleFeature feature = iterator.next();
-            Object code = feature.getAttribute("CODE");
-            Object name = feature.getAttribute("NAME");
-            Object order = feature.getAttribute("FORDER");
-            Object address = feature.getAttribute("ADDRESS");
-            Object table = feature.getAttribute("TYPE");
-            Object district = feature.getAttribute("ADMINCODE");
-            Geometry geometry = JTSTools.getInstance().toGeometry(feature.getDefaultGeometryProperty().getValue().toString());
-            if (code != null) {
-                element.put("code",code.toString());
-            }
-            if (name != null) {
-                element.put("name",name.toString());
-            }
-            if (order != null) {
-            	 element.put("order",NumberUtile.string2float(order.toString()));
-            }
-            if (table != null) {
-            	 element.put("table",table.toString());
-            }
-            if (address != null) {
-            	 element.put("address",address.toString());
-            }
-            if (district != null) {
-            	 element.put("district",district.toString());
-            }
-            if (geometry != null) {
-            	 element.put("geometry",geometry);
-            }
-            element.put("id",UUIDGenerator.randomUUID());
-            elements.add(element);
-        }
-    }
 }

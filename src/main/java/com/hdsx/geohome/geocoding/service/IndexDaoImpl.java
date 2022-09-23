@@ -12,6 +12,8 @@ import com.hdsx.geohome.geocoding.vo.QueryResult;
 import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.geom.Point;
 import com.vividsolutions.jts.io.WKTReader;
+import com.vividsolutions.jts.io.WKTWriter;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.index.*;
@@ -21,12 +23,17 @@ import org.apache.lucene.spatial.query.SpatialArgs;
 import org.apache.lucene.spatial.query.SpatialOperation;
 import org.apache.lucene.store.Directory;
 import org.locationtech.spatial4j.context.SpatialContext;
+import org.locationtech.spatial4j.context.jts.JtsSpatialContext;
 import org.locationtech.spatial4j.distance.DistanceUtils;
+import org.locationtech.spatial4j.exception.InvalidShapeException;
+import org.locationtech.spatial4j.shape.Shape;
 import org.locationtech.spatial4j.shape.jts.JtsGeometry;
+import org.locationtech.spatial4j.shape.jts.JtsShapeFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import java.io.IOException;
+import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -65,13 +72,12 @@ public class IndexDaoImpl implements IndexDao {
             }
             ramIndexWriter = new IndexWriter(ramDirectory, ramConfig);
 
-            int i = 0; for (int size = elementList.size(); i < size; i++) {
-            	Map<String,Object> element = elementList.get(i);
-                
-                element.put("table", table);
-                Document document = DocumentUtils.element2Document(element);
-                ramIndexWriter.addDocument(document);
-            }
+            for (Map<String, Object> element : elementList) {
+            	 element.put("table", table);
+                 Document document = DocumentUtils.element2Document(element);
+                 ramIndexWriter.addDocument(document);
+			}
+
         }
         catch (IOException e)
         {
@@ -178,7 +184,7 @@ public class IndexDaoImpl implements IndexDao {
             attributeFilter(parameter,builder);
             spatialFilter(parameter,builder);
 
-            TopDocs topDocs = searcher.search(builder.build(), 1000);
+            TopDocs topDocs = searcher.search(builder.build(), 100000);
             int count = topDocs.totalHits;
             ScoreDoc[] hits = topDocs.scoreDocs;
             int current = parameter.getCurrent();
@@ -240,9 +246,17 @@ public class IndexDaoImpl implements IndexDao {
         if ((geometry instanceof Point)) {
             Point jtsPoint = (Point)geometry;
             SpatialStrategy strategy = SpatialUtils.createStrategy();
-
             SpatialArgs args = new SpatialArgs(SpatialOperation.Intersects, SpatialContext.GEO.getShapeFactory().circle(jtsPoint.getX(), jtsPoint.getY(), DistanceUtils.dist2Degrees(parameter.getDistance(), 6371.0087714000001D)));
             geoQuery = strategy.makeQuery(args);
+        }else {
+
+     	    SpatialStrategy strategy = SpatialUtils.createStrategy();
+        	 JtsSpatialContext jtsSpatialContext = JtsSpatialContext.GEO;
+             JtsShapeFactory jtsShapeFactory = jtsSpatialContext.getShapeFactory();
+        	JtsGeometry jtsPoint = jtsShapeFactory.makeShape(geometry);
+        	SpatialArgs args = new SpatialArgs(SpatialOperation.Intersects, jtsPoint);
+		     geoQuery = strategy.makeQuery(args);
+			
         }
         if (geoQuery != null) {
             builder.add(geoQuery, BooleanClause.Occur.MUST);
@@ -253,6 +267,7 @@ public class IndexDaoImpl implements IndexDao {
     public static BooleanQuery.Builder attributeFilter(ModelParameter parameter,BooleanQuery.Builder builder) {
         BooleanQuery.Builder typeBuilder = null;//匹配类型
         BooleanQuery.Builder keywordsBuilder = null;  //匹配关键字
+        BooleanQuery.Builder codeBuilder=null;
         if (!StringUtils.isEmpty(parameter.getField())) {
             keywordsBuilder = new BooleanQuery.Builder();  //匹配关键字
             WildcardQuery wildcardQuery = new WildcardQuery(new Term(parameter.getField(), "*" + parameter.getKeywords() + "*"));
@@ -270,7 +285,14 @@ public class IndexDaoImpl implements IndexDao {
                 keywordsBuilder.add(boostQuery1, BooleanClause.Occur.SHOULD);
                 keywordsBuilder.add(boostQuery2, BooleanClause.Occur.SHOULD);
                 keywordsBuilder.add(boostQuery3, BooleanClause.Occur.SHOULD);
+                
             }
+        }
+        if(!StringUtils.isEmpty(parameter.getUnit())) {
+        	 codeBuilder = new BooleanQuery.Builder();  //匹配关键字
+        	WildcardQuery wildcardQuery0 = new WildcardQuery(new Term("code",parameter.getUnit())); 
+        	BoostQuery boostQuery0 = new BoostQuery(wildcardQuery0, 3.0F);
+        	codeBuilder.add(boostQuery0, BooleanClause.Occur.SHOULD);
         }
         if (parameter.getTables() != null) {
             typeBuilder = new BooleanQuery.Builder(); //匹配类型
@@ -282,6 +304,10 @@ public class IndexDaoImpl implements IndexDao {
         if(typeBuilder != null){
             BooleanQuery typeQuery = typeBuilder.build();
             builder.add(typeQuery,BooleanClause.Occur.MUST);
+        }
+        if(codeBuilder != null){
+        	BooleanQuery codeQuery = codeBuilder.build();
+        	builder.add(codeQuery,BooleanClause.Occur.MUST);
         }
         if(keywordsBuilder != null){
             BooleanQuery keywordsQuery = keywordsBuilder.build();
